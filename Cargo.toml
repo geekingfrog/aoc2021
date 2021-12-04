@@ -1,0 +1,23 @@
+[package]
+name = "aoc2021"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+edition = "2021"
+crate-type = ["lib"]
+
+[[bin]]
+name = "aoc2021"
+path = "src/main.rs"
+
+[dependencies]
+criterion = {version="0.3.5", features=["html_reports"]}
+itertools = "0.10.1"
+
+
+[[bench]]
+name = "all"
+harness = false
