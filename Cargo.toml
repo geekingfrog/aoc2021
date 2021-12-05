@@ -16,6 +16,7 @@ path = "src/main.rs"
 [dependencies]
 criterion = {version="0.3.5", features=["html_reports"]}
 itertools = "0.10.1"
+nom = "7.1.0"
 
 
 [[bench]]
