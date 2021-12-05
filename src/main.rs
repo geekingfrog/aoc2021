@@ -5,10 +5,9 @@ use aoc2021::day04;
 use std::env;
 
 fn main() {
-    let arg = env::args()
-        .skip(1)
-        .next()
-        .and_then(|s| usize::from_str_radix(s.as_ref(), 10).ok());
+    let arg: Option<usize> = env::args()
+        .nth(1)
+        .and_then(|s| s.parse::<usize>().ok());
 
     match arg {
         Some(1) => print_day("day01", day01::solve()),

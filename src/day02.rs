@@ -1,12 +1,12 @@
 pub fn solve() -> (usize, usize) {
     let final_sub = include_str!("../resources/day02.txt")
-        .split("\n")
+        .split('\n')
         .filter(|l| !l.is_empty())
         .fold(Sub::default(), move_sub);
     let result1 = final_sub.x * final_sub.depth;
 
     let final_sub = include_str!("../resources/day02.txt")
-        .split("\n")
+        .split('\n')
         .filter(|l| !l.is_empty())
         .fold(Sub::default(), move_sub2);
     let result2 = final_sub.x * final_sub.depth;
@@ -40,9 +40,9 @@ fn move_sub2(mut sub: Sub, raw_line: &str) -> Sub {
 }
 
 fn parse_line(raw_line: &str) -> (&str, usize) {
-    let mut words = raw_line.split(" ");
+    let mut words = raw_line.split(' ');
     let cmd = words.next().unwrap();
-    let n = usize::from_str_radix(words.next().unwrap(), 10).unwrap();
+    let n = words.next().unwrap().parse::<usize>().unwrap();
     (cmd, n)
 }
 
