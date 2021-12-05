@@ -13,19 +13,21 @@ pub fn solve() -> (usize, usize) {
 }
 
 fn solve1(puzzle: &[(Point, Point)]) -> usize {
-    let mut grid = Grid::default();
+    // let mut grid = HashmapGrid::default();
+    let mut grid = VecGrid::from_lines(puzzle);
     for (from, to) in puzzle {
         if (from.x == to.x) || (from.y == to.y) {
-            grid.set_line(&from, &to);
+            grid.set_line(from, to);
         }
     }
     grid.count_intersections()
 }
 
 fn solve2(puzzle: &[(Point, Point)]) -> usize {
-    let mut grid = Grid::default();
+    // let mut grid = HashmapGrid::default();
+    let mut grid = VecGrid::from_lines(puzzle);
     for (from, to) in puzzle {
-        grid.set_line(&from, &to);
+        grid.set_line(from, to);
     }
     grid.count_intersections()
 }
@@ -45,9 +47,9 @@ fn parse_line(input: &str) -> nom::IResult<&str, (Point, Point)> {
 fn parse_point(input: &str) -> nom::IResult<&str, Point> {
     map(
         separated_pair(
-            nom::character::complete::u32,
+            nom::character::complete::i32,
             tag(","),
-            nom::character::complete::u32,
+            nom::character::complete::i32,
         ),
         |(x, y)| Point { x, y },
     )(input)
@@ -55,46 +57,86 @@ fn parse_point(input: &str) -> nom::IResult<&str, Point> {
 
 #[derive(Ord, PartialOrd, Eq, PartialEq, Debug)]
 struct Point {
-    x: u32,
-    y: u32,
+    // technically unsigned, but having i32 avoid some casting down the line
+    x: i32,
+    y: i32,
 }
 
+impl Point {
+    fn line_to(&self, to: &Point) -> PointLine {
+        let dx = match self.x.cmp(&to.x) {
+            cmp::Ordering::Less => 1,
+            cmp::Ordering::Equal => 0,
+            cmp::Ordering::Greater => -1,
+        };
+
+        let dy = match self.y.cmp(&to.y) {
+            cmp::Ordering::Less => 1,
+            cmp::Ordering::Equal => 0,
+            cmp::Ordering::Greater => -1,
+        };
+
+        PointLine {
+            should_stop: false,
+            dx,
+            dy,
+            x: self.x,
+            y: self.y,
+            final_x: to.x,
+            final_y: to.y,
+        }
+    }
+}
+
+struct PointLine {
+    should_stop: bool,
+    dx: i32,
+    dy: i32,
+    x: i32,
+    y: i32,
+    final_x: i32,
+    final_y: i32,
+}
+
+impl std::iter::Iterator for PointLine {
+    type Item = Point;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.should_stop {
+            return None;
+        };
+
+        let p = Some(Point {
+            x: self.x,
+            y: self.y,
+        });
+        if (self.x == self.final_x) && (self.y == self.final_y) {
+            self.should_stop = true;
+        }
+        self.x += self.dx;
+        self.y += self.dy;
+
+        p
+    }
+}
+
+trait Aoc {
+    fn set_line(&mut self, from: &Point, to: &Point);
+    fn count_intersections(&self) -> usize;
+}
+
+// Keep this around for posterity. It works, but the implementation
+// using a vector as the underlying storage is 94% faster
 #[derive(Default)]
-struct Grid {
+struct HashmapGrid {
     points: BTreeMap<Point, u32>,
 }
 
-impl Grid {
+impl Aoc for HashmapGrid {
     fn set_line(&mut self, from: &Point, to: &Point) {
-        let dx = match from.x.cmp(&to.x) {
-            cmp::Ordering::Less => 1,
-            cmp::Ordering::Equal => 0,
-            cmp::Ordering::Greater => -1,
-        };
-
-        let dy = match from.y.cmp(&to.y) {
-            cmp::Ordering::Less => 1,
-            cmp::Ordering::Equal => 0,
-            cmp::Ordering::Greater => -1,
-        };
-
-        let mut x = from.x as i32;
-        let mut y = from.y as i32;
-        loop {
-            let e = self
-                .points
-                .entry(Point {
-                    x: x as _,
-                    y: y as _,
-                })
-                .or_default();
+        for p in from.line_to(to) {
+            let e = self.points.entry(p).or_default();
             *e += 1;
-
-            if x == to.x as _ && y == to.y as _ {
-                break;
-            }
-            x += dx;
-            y += dy;
         }
     }
 
@@ -103,7 +145,7 @@ impl Grid {
     }
 }
 
-impl std::fmt::Debug for Grid {
+impl std::fmt::Debug for HashmapGrid {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
         let max_x = self.points.keys().map(|p| p.x).max().unwrap();
         let max_y = self.points.keys().map(|p| p.y).max().unwrap();
@@ -113,12 +155,78 @@ impl std::fmt::Debug for Grid {
                     .points
                     .get(&Point { x, y })
                     .map(|n| format!("{}", n))
-                    .unwrap_or(".".to_string());
+                    .unwrap_or_else(|| ".".to_string());
                 f.write_str(&val)?;
             }
             f.write_str("\n")?;
         }
         Ok(())
+    }
+}
+
+struct VecGrid {
+    max_x: usize,
+    max_y: usize,
+    points: Vec<u32>,
+}
+
+impl VecGrid {
+    fn from_lines(puzzle: &[(Point, Point)]) -> Self {
+        let max_x = puzzle
+            .iter()
+            .map(|(p1, p2)| cmp::max(p1.x, p2.x))
+            .max()
+            .expect("at least one line");
+        let max_y = puzzle
+            .iter()
+            .map(|(p1, p2)| cmp::max(p1.y, p2.y))
+            .max()
+            .expect("at least one line");
+
+        let n = (max_x + 1) * (max_y + 1);
+        Self {
+            max_x: max_x as _,
+            max_y: max_y as _,
+            points: vec![0; n as usize],
+        }
+    }
+}
+
+impl std::fmt::Debug for VecGrid {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> Result<(), std::fmt::Error> {
+        for y in 0..=self.max_y {
+            for x in 0..=self.max_x {
+                let idx = y * self.max_x + x;
+                let val = self
+                    .points
+                    .get(idx)
+                    .map(|n| {
+                        if *n == 0 {
+                            ".".to_string()
+                        } else {
+                            format!("{}", n)
+                        }
+                    })
+                    .unwrap();
+                f.write_str(&val)?;
+            }
+            f.write_str("\n")?;
+        }
+        Ok(())
+    }
+}
+
+impl Aoc for VecGrid {
+    fn set_line(&mut self, from: &Point, to: &Point) {
+        for p in from.line_to(to) {
+            let idx = p.y as usize * self.max_x + p.x as usize;
+            let e = self.points.get_mut(idx).unwrap();
+            *e += 1
+        }
+    }
+
+    fn count_intersections(&self) -> usize {
+        self.points.iter().filter(|v| **v > 1).count()
     }
 }
 
