@@ -8,18 +8,13 @@ use std::collections::BTreeSet;
 
 pub fn solve() -> (usize, usize) {
     let puzzle = parse_puzzle(include_str!("../resources/day04.txt"));
-    let mut s = 0;
-    for _ in 0..10 {
-        let (a, b) = (solve1(&puzzle), solve2(&puzzle));
-        s += a + b;
-    }
-    (s, s)
+    (solve1(&puzzle), solve2(&puzzle))
 }
 
 fn solve1(puzzle: &Puzzle) -> usize {
-    let mut drawn_nums = BTreeSet::new();
+    let mut drawn_nums: Vec<u8> = vec![];
     for n in &puzzle.numbers {
-        drawn_nums.insert(*n);
+        drawn_nums.push(*n);
         for grid in &puzzle.grids {
             if grid.has_won(&drawn_nums) {
                 return get_magic_num(&drawn_nums, &grid, *n);
@@ -30,10 +25,10 @@ fn solve1(puzzle: &Puzzle) -> usize {
 }
 
 fn solve2(puzzle: &Puzzle) -> usize {
-    let mut drawn_nums = BTreeSet::new();
+    let mut drawn_nums = vec![];
     let mut remaining_grids: BTreeSet<&Grid> = puzzle.grids.iter().collect();
     for n in &puzzle.numbers {
-        drawn_nums.insert(*n);
+        drawn_nums.push(*n);
         for grid in &puzzle.grids {
             if grid.has_won(&drawn_nums) {
                 remaining_grids.remove(&grid);
@@ -46,7 +41,7 @@ fn solve2(puzzle: &Puzzle) -> usize {
     unreachable!()
 }
 
-fn get_magic_num(drawn_nums: &BTreeSet<u8>, grid: &Grid, n: u8) -> usize {
+fn get_magic_num(drawn_nums: &Vec<u8>, grid: &Grid, n: u8) -> usize {
     let s: usize = grid
         .nums
         .iter()
@@ -98,11 +93,11 @@ struct Grid {
 }
 
 impl Grid {
-    fn has_won(&self, drawn_nums: &BTreeSet<u8>) -> bool {
+    fn has_won(&self, drawn_nums: &Vec<u8>) -> bool {
         self.has_won_manual(drawn_nums)
     }
 
-    fn has_won_manual(&self, drawn_nums: &BTreeSet<u8>) -> bool {
+    fn has_won_manual(&self, drawn_nums: &Vec<u8>) -> bool {
         for row in 0..5 {
             let mut r = true;
             for col in 0..5 {
@@ -138,7 +133,7 @@ impl Grid {
 
     // nicer, but slower version.
     #[allow(dead_code)]
-    fn has_won_iter(&self, drawn_nums: &BTreeSet<u8>) -> bool {
+    fn has_won_iter(&self, drawn_nums: &Vec<u8>) -> bool {
         let row = self
             .nums
             .iter()
@@ -202,7 +197,7 @@ mod test {
                 12, 6,
             ],
         };
-        let drawns: BTreeSet<_> = vec![7, 4, 9, 5, 11, 17, 23, 2, 0, 14, 21, 24, 10, 16, 13]
+        let drawns = vec![7, 4, 9, 5, 11, 17, 23, 2, 0, 14, 21, 24, 10, 16, 13]
             .into_iter()
             .collect();
         assert!(grid.has_won(&drawns));
