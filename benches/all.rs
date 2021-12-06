@@ -7,10 +7,10 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 #[allow(dead_code)]
 fn separate(c: &mut Criterion) {
-    // c.bench_function("day01", |b| b.iter(|| black_box(day01::solve())));
-    // c.bench_function("day02", |b| b.iter(|| black_box(day02::solve())));
-    // c.bench_function("day03", |b| b.iter(|| black_box(day03::solve())));
-    // c.bench_function("day04", |b| b.iter(|| black_box(day04::solve())));
+    c.bench_function("day01", |b| b.iter(|| black_box(day01::solve())));
+    c.bench_function("day02", |b| b.iter(|| black_box(day02::solve())));
+    c.bench_function("day03", |b| b.iter(|| black_box(day03::solve())));
+    c.bench_function("day04", |b| b.iter(|| black_box(day04::solve())));
     c.bench_function("day05", |b| b.iter(|| black_box(day05::solve())));
 }
 
@@ -29,7 +29,7 @@ fn all_at_once(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, separate);
+// criterion_group!(benches, separate);
 // criterion_group!(benches, all_at_once);
-// criterion_group!(benches, separate, all_at_once);
+criterion_group!(benches, separate, all_at_once);
 criterion_main!(benches);
