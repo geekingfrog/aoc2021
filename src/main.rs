@@ -4,6 +4,7 @@ use aoc2021::day03;
 use aoc2021::day04;
 use aoc2021::day05;
 use aoc2021::day06;
+use aoc2021::day07;
 use std::env;
 
 fn main() {
@@ -18,6 +19,7 @@ fn main() {
         Some(4) => print_day("day04", day04::solve()),
         Some(5) => print_day("day05", day05::solve()),
         Some(6) => print_day("day06", day06::solve()),
+        Some(7) => print_day("day07", day07::solve()),
         Some(x) => {
             eprintln!("Not solved yet for day {}", x);
             std::process::exit(1);
@@ -29,6 +31,7 @@ fn main() {
             print_day("day04", day04::solve());
             print_day("day05", day05::solve());
             print_day("day06", day06::solve());
+            print_day("day07", day07::solve());
         }
     }
 }
