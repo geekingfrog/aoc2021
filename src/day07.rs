@@ -35,14 +35,10 @@ fn solve2(input: &[i32]) -> usize {
 
 fn parse_puzzle(input: &str) -> Vec<i32> {
     input
-        .split(',')
-        .filter_map(|x| {
+        .split_terminator(',')
+        .map(|x| {
             let x = x.strip_suffix('\n').unwrap_or(x);
-            if x.is_empty() {
-                None
-            } else {
-                Some(x.parse::<i32>().unwrap())
-            }
+            x.parse::<i32>().unwrap()
         })
         .collect()
 }

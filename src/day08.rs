@@ -80,8 +80,7 @@ struct Line {
 }
 
 fn parse_puzzle(raw: &str) -> Vec<Line> {
-    raw.split('\n')
-        .filter(|l| !l.is_empty())
+    raw.split_terminator('\n')
         .map(parse_line)
         .collect()
 }
@@ -91,7 +90,7 @@ fn parse_line(l: &str) -> Line {
     let input = ls
         .next()
         .unwrap()
-        .split(' ')
+        .split_terminator(' ')
         .map(parse_word)
         .filter(|w| w > &0)
         .collect::<Vec<_>>()
@@ -100,7 +99,7 @@ fn parse_line(l: &str) -> Line {
     let output = ls
         .next()
         .unwrap()
-        .split(' ')
+        .split_terminator(' ')
         .map(parse_word)
         .filter(|w| w > &0)
         .collect::<Vec<_>>()

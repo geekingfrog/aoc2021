@@ -22,7 +22,7 @@ pub fn solve() -> (usize, usize) {
         .map(|_| (0, 0))
         .collect();
     let k = (1 << v0.len()) - 1;
-    let final_v = input.split('\n').filter(|l| !l.is_empty()).fold(v0, f);
+    let final_v = input.split_terminator('\n').fold(v0, f);
     let gamma = to_n(&final_v);
     let epsilon = !gamma & k;
     let result1 = gamma * epsilon;
@@ -52,8 +52,7 @@ fn to_n(v: &[(usize, usize)]) -> usize {
 fn solve2() -> usize {
     let input = include_str!("../resources/day03.txt");
     let nums: Vec<usize> = input
-        .split('\n')
-        .filter(|l| !l.is_empty())
+        .split_terminator('\n')
         .map(|l| usize::from_str_radix(l, 2).unwrap())
         .collect();
 

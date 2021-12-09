@@ -108,8 +108,8 @@ impl std::fmt::Display for Grid {
 }
 
 fn parse_grid(raw: &str) -> Grid {
-    let width = raw.split_terminator("\n").next().unwrap().len();
-    let height = raw.split_terminator("\n").count();
+    let width = raw.split_terminator('\n').next().unwrap().len();
+    let height = raw.split_terminator('\n').count();
     let points = raw
         .chars()
         .filter_map(|c| c.to_digit(10).map(|d| d as _))

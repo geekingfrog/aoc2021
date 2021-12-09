@@ -1,13 +1,11 @@
 pub fn solve() -> (usize, usize) {
     let final_sub = include_str!("../resources/day02.txt")
-        .split('\n')
-        .filter(|l| !l.is_empty())
+        .split_terminator('\n')
         .fold(Sub::default(), move_sub);
     let result1 = final_sub.x * final_sub.depth;
 
     let final_sub = include_str!("../resources/day02.txt")
-        .split('\n')
-        .filter(|l| !l.is_empty())
+        .split_terminator('\n')
         .fold(Sub::default(), move_sub2);
     let result2 = final_sub.x * final_sub.depth;
 
