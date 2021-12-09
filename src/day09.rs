@@ -40,24 +40,20 @@ impl Grid {
     }
 
     fn neighbours(&self, x: usize, y: usize) -> impl Iterator<Item = (usize, usize)> + '_ {
-        [
-            (x.checked_sub(1), Some(y)),
-            (Some(x + 1), Some(y)),
-            (Some(x), y.checked_sub(1)),
-            (Some(x), Some(y + 1)),
-        ]
-        .into_iter()
-        .filter_map(|(x, y)| {
-            x.and_then(|x| {
-                y.and_then(|y| {
-                    if x >= self.width || y >= self.height {
-                        None
-                    } else {
-                        Some((x, y))
-                    }
-                })
-            })
-        })
+        let mut ns = Vec::with_capacity(4);
+        if x > 0 {
+            ns.push((x-1, y))
+        }
+        if x < self.width - 1 {
+            ns.push((x+1, y))
+        }
+        if y > 0 {
+            ns.push((x, y-1))
+        }
+        if y < self.height - 1 {
+            ns.push((x, y+1))
+        }
+        ns.into_iter()
     }
 
     fn low_points(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
