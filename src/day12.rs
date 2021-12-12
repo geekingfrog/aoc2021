@@ -97,9 +97,9 @@ impl Graph {
     fn count_path_to_end(&self, can_return: bool) -> usize {
         let mut seen = vec![false; self.n];
         seen[0] = true;
-        let mut results = BTreeSet::new();
+        let mut results = vec![];
         self.dfs(0, seen, can_return, vec![], &mut results);
-        results.len()
+        results.into_iter().collect::<BTreeSet<_>>().len()
     }
 
     fn dfs(
@@ -108,7 +108,9 @@ impl Graph {
         seen: Vec<bool>,
         can_return: bool,
         mut path: Vec<usize>,
-        results: &mut BTreeSet<Vec<usize>>,
+        // using a BTreeSet there is actually slower than carrying a vec
+        // and removing the duplicates at the very end
+        results: &mut Vec<Vec<usize>>,
     ) {
         path.push(from);
         for i in self.connections[(self.n * from)..(self.n * (from + 1))]
@@ -122,7 +124,7 @@ impl Graph {
             if i == self.n - 1 {
                 let mut p = path.clone();
                 p.push(i);
-                results.insert(p);
+                results.push(p);
                 continue;
             }
             match self.caves[i] {
