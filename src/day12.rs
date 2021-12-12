@@ -95,8 +95,9 @@ impl Graph {
     fn count_path_to_end(&self, can_return: bool) -> usize {
         let mut seen = vec![false; self.n];
         seen[0] = true;
-        let paths = self.dfs(0, seen, can_return, vec![]);
-        paths.len()
+        let mut results = BTreeSet::new();
+        self.dfs(0, seen, can_return, vec![], &mut results);
+        results.len()
     }
 
     fn dfs(
@@ -105,9 +106,9 @@ impl Graph {
         seen: Vec<bool>,
         can_return: bool,
         mut path: Vec<usize>,
-    ) -> BTreeSet<Vec<usize>> {
+        mut results: &mut BTreeSet<Vec<usize>>,
+    ) {
         path.push(from);
-        let mut result = BTreeSet::new();
         for i in self.connections[(self.n * from)..(self.n * (from + 1))]
             .iter()
             .enumerate()
@@ -119,25 +120,24 @@ impl Graph {
             if i == self.n - 1 {
                 let mut p = path.clone();
                 p.push(i);
-                result.insert(p);
+                results.insert(p);
                 continue;
             }
             match self.caves[i] {
                 Cave::Small => {
                     if can_return {
                         // don't mark node as seen, and flip the switch
-                        result.append(&mut self.dfs(i, seen.clone(), false, path.clone()));
+                        self.dfs(i, seen.clone(), false, path.clone(), &mut results);
                     }
                     let mut s = seen.clone();
                     s[i] = true;
-                    result.append(&mut self.dfs(i, s, can_return, path.clone()));
+                    self.dfs(i, s, can_return, path.clone(), &mut results);
                 }
                 Cave::Big => {
-                    result.append(&mut self.dfs(i, seen.clone(), can_return, path.clone()))
+                    self.dfs(i, seen.clone(), can_return, path.clone(), &mut results)
                 }
             }
         }
-        result
     }
 }
 
