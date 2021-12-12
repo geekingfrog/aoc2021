@@ -7,7 +7,7 @@ pub fn solve() -> (usize, usize) {
 
 fn solve1(grid: &Grid) -> usize {
     let mut c = 0;
-    let mut g = grid.clone();
+    let mut g = *grid;
     for _ in 0..100 {
         let (flashed, g2) = next_grid(g);
         g = g2;
@@ -18,7 +18,7 @@ fn solve1(grid: &Grid) -> usize {
 
 fn solve2(grid: &Grid) -> usize {
     let mut step = 0;
-    let mut grid = grid.clone();
+    let mut grid = *grid;
     loop {
         if grid.iter().all(|&c| c == 0) {
             break;
@@ -63,12 +63,10 @@ fn next_grid(mut grid: Grid) -> (usize, Grid) {
     while let Some((x, y)) = to_visit.pop() {
         let idx = y * 10 + x;
         grid[idx] += 1;
-        if grid[idx] > 9 {
-            if !flashed.contains(&idx) {
-                flashed.push(idx);
-                for (x2, y2) in neighbours(x, y) {
-                    to_visit.push((x2, y2));
-                }
+        if grid[idx] > 9 && !flashed.contains(&idx) {
+            flashed.push(idx);
+            for (x2, y2) in neighbours(x, y) {
+                to_visit.push((x2, y2));
             }
         }
     }
@@ -87,9 +85,9 @@ fn dbg_grid(grid: &Grid) {
         for x in 0..10 {
             print!("{}", grid[y * 10 + x])
         }
-        print!("\n");
+        println!();
     }
-    print!("\n");
+    println!();
 }
 
 #[cfg(test)]

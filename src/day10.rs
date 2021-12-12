@@ -3,7 +3,7 @@ pub fn solve() -> (usize, usize) {
     (solve1(&puzzle), solve2(&puzzle))
 }
 
-fn solve1(puzzle: &Vec<Vec<char>>) -> usize {
+fn solve1(puzzle: &[Vec<char>]) -> usize {
     puzzle
         .iter()
         .filter_map(|l| match check_line(l) {
@@ -19,7 +19,7 @@ fn solve1(puzzle: &Vec<Vec<char>>) -> usize {
         .sum()
 }
 
-fn solve2(puzzle: &Vec<Vec<char>>) -> usize {
+fn solve2(puzzle: &[Vec<char>]) -> usize {
     let mut scores: Vec<_> = puzzle
         .iter()
         .filter_map(|l| match check_line(l) {

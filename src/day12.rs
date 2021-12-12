@@ -26,6 +26,8 @@ struct Graph {
     // so even a sparse graph doesn't consume much mem
     connections: Vec<bool>,
 
+    // useful for debugging
+    #[allow(dead_code)]
     mappings: BTreeMap<String, usize>,
 
     caves: Vec<Cave>,
@@ -106,7 +108,7 @@ impl Graph {
         seen: Vec<bool>,
         can_return: bool,
         mut path: Vec<usize>,
-        mut results: &mut BTreeSet<Vec<usize>>,
+        results: &mut BTreeSet<Vec<usize>>,
     ) {
         path.push(from);
         for i in self.connections[(self.n * from)..(self.n * (from + 1))]
@@ -127,14 +129,14 @@ impl Graph {
                 Cave::Small => {
                     if can_return {
                         // don't mark node as seen, and flip the switch
-                        self.dfs(i, seen.clone(), false, path.clone(), &mut results);
+                        self.dfs(i, seen.clone(), false, path.clone(), results);
                     }
                     let mut s = seen.clone();
                     s[i] = true;
-                    self.dfs(i, s, can_return, path.clone(), &mut results);
+                    self.dfs(i, s, can_return, path.clone(), results);
                 }
                 Cave::Big => {
-                    self.dfs(i, seen.clone(), can_return, path.clone(), &mut results)
+                    self.dfs(i, seen.clone(), can_return, path.clone(), results)
                 }
             }
         }
