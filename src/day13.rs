@@ -198,6 +198,6 @@ fold along x=5
     #[test]
     fn test_solve2() {
         let p = parse_puzzle(TEST_INPUT);
-        assert_eq!("coucou".to_string(), solve2(&p));
+        assert_eq!("16".to_string(), solve2(&p));
     }
 }

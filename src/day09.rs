@@ -9,7 +9,7 @@ pub fn solve() -> (usize, usize) {
 
 fn solve1(grid: &Grid) -> usize {
     grid.low_points()
-        .map(|(x, y)| grid.get(x, y).unwrap() as usize + 1)
+        .map(|(x, y)| *grid.get(x, y).unwrap() as usize + 1)
         .sum()
 }
 
@@ -23,39 +23,9 @@ fn solve2(grid: &Grid) -> usize {
     bassins_len.iter().rev().take(3).product()
 }
 
-struct Grid {
-    points: Vec<u8>,
-    width: usize,
-    height: usize,
-}
+type Grid = crate::utils::Grid<u8>;
 
 impl Grid {
-    fn get(&self, x: usize, y: usize) -> Option<u8> {
-        if x >= self.width || y >= self.height {
-            None
-        } else {
-            let idx = self.width * y + x;
-            self.points.get(idx).copied()
-        }
-    }
-
-    fn neighbours(&self, x: usize, y: usize) -> impl Iterator<Item = (usize, usize)> + '_ {
-        let mut ns = Vec::with_capacity(4);
-        if x > 0 {
-            ns.push((x-1, y))
-        }
-        if x < self.width - 1 {
-            ns.push((x+1, y))
-        }
-        if y > 0 {
-            ns.push((x, y-1))
-        }
-        if y < self.height - 1 {
-            ns.push((x, y+1))
-        }
-        ns.into_iter()
-    }
-
     fn low_points(&self) -> impl Iterator<Item = (usize, usize)> + '_ {
         (0..self.height)
             .cartesian_product(0..self.width)
@@ -82,24 +52,12 @@ impl Grid {
             seen.insert((x, y));
             for n in self.neighbours(x, y) {
                 let (nx, ny) = n;
-                if !seen.contains(&n) && (self.get(nx, ny) != Some(9)) {
+                if !seen.contains(&n) && (self.get(nx, ny).copied() != Some(9)) {
                     to_check.push(n)
                 }
             }
         }
         seen
-    }
-}
-
-impl std::fmt::Display for Grid {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for y in 0..self.height {
-            for x in 0..self.width {
-                f.write_fmt(format_args!("{}", self.get(x, y).unwrap()))?;
-            }
-            f.write_str("\n")?
-        }
-        Ok(())
     }
 }
 

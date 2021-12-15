@@ -4,6 +4,8 @@ pub struct Grid<T> {
     pub height: usize,
 }
 
+pub type Point = (usize, usize);
+
 impl<T> Grid<T> {
     pub fn get(&self, x: usize, y: usize) -> Option<&T> {
         if x >= self.width || y >= self.height {
