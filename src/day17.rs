@@ -1,13 +1,9 @@
 use itertools::Itertools;
-use nom::character::complete::char;
-use nom::IResult;
 use nom::{
     bytes::complete::tag,
-    character::complete::digit1,
-    combinator::{map, opt},
     sequence::{preceded, tuple},
 };
-use std::ops::Neg;
+use crate::utils::parse_i32;
 
 pub fn solve() -> (i32, usize) {
     let ta = TargetArea::from_str(include_str!("../resources/day17.txt"));
@@ -120,19 +116,6 @@ impl TargetArea {
         let (y0, y1) = if y0 >= y1 { (y0, y1) } else { (y1, y0) };
         Self { x0, x1, y0, y1 }
     }
-}
-
-fn parse_i32(raw: &str) -> IResult<&str, i32> {
-    map(
-        tuple((opt(char('-')), digit1)),
-        |(sign, ds): (Option<char>, &str)| {
-            let x: i32 = ds.parse().unwrap();
-            match sign {
-                None => x,
-                Some(_) => x.neg(),
-            }
-        },
-    )(raw)
 }
 
 #[cfg(test)]

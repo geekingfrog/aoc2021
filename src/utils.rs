@@ -1,3 +1,7 @@
+use std::ops::Neg;
+
+use nom::{IResult, combinator::{map, opt}, sequence::tuple, character::complete::digit1};
+
 pub struct Grid<T> {
     pub points: Vec<T>,
     pub width: usize,
@@ -52,4 +56,17 @@ where
         }
         Ok(())
     }
+}
+
+pub fn parse_i32(raw: &str) -> IResult<&str, i32> {
+    map(
+        tuple((opt(nom::character::complete::char('-')), digit1)),
+        |(sign, ds): (Option<char>, &str)| {
+            let x: i32 = ds.parse().unwrap();
+            match sign {
+                None => x,
+                Some(_) => x.neg(),
+            }
+        },
+    )(raw)
 }
