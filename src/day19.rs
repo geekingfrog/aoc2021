@@ -20,21 +20,7 @@ fn solve2(scanners: &[Scanner]) -> usize {
     0
 }
 
-// fn overlap(s0: &Scanner, s1: &Scanner) -> Vec<Point> {
-//     let mut result = vec![];
-//     for p in &s0.points {
-//         let delta = *p - s1.points[0];
-//         let c = s1.points.iter().skip(1).filter(|&p2| {
-//             (p - p2).is_zero()
-//         }).count();
-//         if c >= 11 {
-//             result.push(*p);
-//         }
-//     }
-//     result
-// }
-
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Point {
     x: i32,
     y: i32,
@@ -55,6 +41,30 @@ impl std::ops::Sub for Point {
             x: self.x - rhs.x,
             y: self.y - rhs.y,
             z: self.z - rhs.z,
+        }
+    }
+}
+
+impl std::ops::Add for Point {
+    type Output = Self;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        Point {
+            x: self.x + rhs.x,
+            y: self.y + rhs.y,
+            z: self.z + rhs.z,
+        }
+    }
+}
+
+impl std::ops::Mul<&[[i32; 3]; 3]> for Point {
+    type Output = Self;
+
+    fn mul(self, rhs: &[[i32; 3]; 3]) -> Self::Output {
+        Point {
+            x: self.x * rhs[0][0] + self.y * rhs[0][1] + self.z * rhs[0][2],
+            y: self.x * rhs[1][0] + self.y * rhs[1][1] + self.z * rhs[1][2],
+            z: self.x * rhs[2][0] + self.y * rhs[2][1] + self.z * rhs[2][2],
         }
     }
 }
@@ -96,6 +106,109 @@ impl std::fmt::Display for Point {
 struct Scanner {
     id: u8,
     points: Vec<Point>,
+}
+
+type M3 = [[i32; 3]; 3];
+
+// const MATRICES: [M3; 24] = [
+//     // x "up"
+//     [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+//     [[1, 0, 0], [0, 0, -1], [0, 1, 0]],
+//     [[1, 0, 0], [0, -1, 0], [0, 0, -1]],
+//     [[1, 0, 0], [0, 0, 1], [0, -1, 0]],
+//     [[-1, 0, 0], [0, 1, 0], [0, 0, -1]],
+//     [[-1, 0, 0], [0, 0, -1], [0, -1, 0]],
+//     [[-1, 0, 0], [0, -1, 0], [0, 0, 1]],
+//     [[-1, 0, 0], [0, 0, 1], [0, 1, 0]],
+//     // y "up"
+//     // [[0, 1, 0], [1, 0, 0], [0, 0, 1]],
+//     [[0, 1, 0], [1, 0, 0], [0, 0, -1]],
+//     [[0, 0, -1], [1, 0, 0], [0, 1, 0]],
+//     [[0, -1, 0], [1, 0, 0], [0, 0, -1]],
+//     [[0, 0, 1], [1, 0, 0], [0, -1, 0]],
+//     [[0, 1, 0], [-1, 0, 0], [0, 0, -1]],
+//     [[0, 0, -1], [-1, 0, 0], [0, -1, 0]],
+//     [[0, -1, 0], [-1, 0, 0], [0, 0, 1]],
+//     [[0, 0, 1], [-1, 0, 0], [0, 1, 0]],
+//     // z "up"
+//     [[0, 1, 0], [0, 0, 1], [1, 0, 0]],
+//     [[0, 0, -1], [0, 1, 0], [1, 0, 0]],
+//     [[0, -1, 0], [0, 0, -1], [1, 0, 0]],
+//     [[0, 0, 1], [0, -1, 0], [1, 0, 0]],
+//     [[0, 1, 0], [0, 0, -1], [-1, 0, 0]],
+//     [[0, 0, -1], [0, -1, 0], [-1, 0, 0]],
+//     [[0, -1, 0], [0, 0, 1], [-1, 0, 0]],
+//     [[0, 0, 1], [0, 1, 0], [-1, 0, 0]],
+// ];
+
+const MATRICES: [M3; 24] = [
+    // x up
+    [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    [[1, 0, 0], [0, 0, -1], [0, 1, 0]],
+    [[1, 0, 0], [0, -1, 0], [0, 0, -1]],
+    [[1, 0, 0], [0, 0, 1], [0, -1, 0]],
+    // x down
+    [[-1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    [[-1, 0, 0], [0, 0, -1], [0, 1, 0]],
+    [[-1, 0, 0], [0, -1, 0], [0, 0, -1]],
+    [[-1, 0, 0], [0, 0, 1], [0, -1, 0]],
+    // y up
+    [[0, 0, 1], [1, 0, 0], [0, 1, 0]],
+    [[0, 1, 0], [1, 0, 0], [0, 0, -1]],
+    [[0, 0, -1], [1, 0, 0], [0, -1, 0]],
+    [[0, -1, 0], [1, 0, 0], [0, 0, 1]],
+    // y down
+    [[0, 0, 1], [-1, 0, 0], [0, 1, 0]],
+    [[0, 1, 0], [-1, 0, 0], [0, 0, -1]],
+    [[0, 0, -1], [-1, 0, 0], [0, -1, 0]],
+    [[0, -1, 0], [-1, 0, 0], [0, 0, 1]],
+    // z up
+    [[0, 1, 0], [0, 0, 1], [1, 0, 0]],
+    [[0, 0, -1], [0, 1, 0], [1, 0, 0]],
+    [[0, -1, 0], [0, 0, -1], [1, 0, 0]],
+    [[0, 0, 1], [0, -1, 0], [1, 0, 0]],
+    // z down
+    [[0, 1, 0], [0, 0, 1], [-1, 0, 0]],
+    [[0, 0, -1], [0, 1, 0], [-1, 0, 0]],
+    [[0, -1, 0], [0, 0, -1], [-1, 0, 0]],
+    [[0, 0, 1], [0, -1, 0], [-1, 0, 0]],
+];
+
+fn scanner_permutations(scanner: &Scanner) -> [(M3, Vec<Point>); 24] {
+    MATRICES
+        .iter()
+        .map(|m| {
+            (
+                *m,
+                scanner.points.clone().into_iter().map(|p| p * m).collect(),
+            )
+        })
+        .collect::<Vec<_>>()
+        .try_into()
+        .unwrap()
+}
+
+fn overlap(source_points: &[Point], scanner: &(M3, Vec<Point>)) -> Option<(Point, M3, Vec<Point>)> {
+    let (scanner_perm, scanner_points) = scanner;
+    for source_point in source_points {
+        for scanner_point in scanner_points {
+            let delta = source_point - scanner_point;
+            let matching_points: Vec<_> = scanner_points
+                .iter()
+                .cloned()
+                .filter(|scanner_point| {
+                    source_points
+                        .iter()
+                        .any(|source_point| *source_point - scanner_point == delta)
+                })
+                .collect();
+
+            if matching_points.len() >= 12 {
+                return Some((delta, *scanner_perm, matching_points));
+            }
+        }
+    }
+    None
 }
 
 fn parse_puzzle(raw: &str) -> Vec<Scanner> {
@@ -152,15 +265,155 @@ fn parse_i32(raw: &str) -> IResult<&str, i32> {
 mod test {
     use super::*;
 
-    const TEST_INPUT: &str = include_str!("../resources/day19_test.txt");
+    // const TEST_INPUT: &str = include_str!("../resources/day19_test.txt");
+    const TEST_INPUT: &str = include_str!("../resources/day19.txt");
 
     #[test]
+    #[ignore]
     fn test_parser() {
         let puzzle = parse_puzzle(TEST_INPUT);
         println!("{:?}", puzzle);
         assert_eq!(5, puzzle.len());
         assert_eq!(0, puzzle[0].id);
         assert_eq!(25, puzzle[0].points.len());
+    }
+
+    #[test]
+    fn test_matrix_mul_id() {
+        assert_eq!(
+            Point {
+                x: 10,
+                y: 20,
+                z: 30
+            },
+            Point {
+                x: 10,
+                y: 20,
+                z: 30
+            } * &[[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+        );
+    }
+
+    #[test]
+    fn test_matrix_mul_0() {
+        assert_eq!(
+            Point {
+                x: -20,
+                y: 10,
+                z: -30
+            },
+            Point {
+                x: 10,
+                y: 20,
+                z: 30
+            } * &[[0, -1, 0], [1, 0, 0], [0, 0, -1]],
+        );
+    }
+
+    #[test]
+    fn test_delta_1() {
+        let puzzle = parse_puzzle(TEST_INPUT);
+        let matched = scanner_permutations(&puzzle[1])
+            .iter()
+            .find_map(|perm| overlap(&puzzle[0].points, perm));
+        let expected_delta = Point {
+            x: 68,
+            y: -1246,
+            z: -43,
+        };
+        let (delta, perm, _) = matched.unwrap();
+        println!("delta: {}, perm: {:?}", delta, perm);
+        assert_eq!(expected_delta, delta);
+    }
+
+    #[test]
+    fn test_delta_2() {
+        let puzzle = parse_puzzle(TEST_INPUT);
+        // let matched = [0, 1, 3, 4].into_iter().find_map(|i| {
+        //     println!("matching 2 with {}", i);
+        //     scanner_permutations(&puzzle[2])
+        //         .iter()
+        //         .find_map(|perm| overlap(&puzzle[i].points, perm))
+        // });
+
+        let matched = scanner_permutations(&puzzle[2])
+            .iter()
+            .find_map(|perm| overlap(&puzzle[4].points, perm));
+
+        let expected_delta = Point {
+            x: -20,
+            y: -1133,
+            z: -1061,
+        };
+        let delta_1 = Point {
+            x: 68,
+            y: -1246,
+            z: -43,
+        };
+        // scanner 1 matrix:
+        // [[-1, 0, 0], [0, 1, 0], [0, 0, -1]]
+
+        // scanner 4 matrix (relative to 1):
+        // [[0, 1, 0], [0, 0, -1], [-1, 0, 0]]
+        let (delta, perm, _) = matched.unwrap();
+        println!("delta: {}, perm: {:?}", delta, perm);
+        assert_eq!(expected_delta, delta - delta_1);
+    }
+
+    #[test]
+    fn test_delta_3() {
+        let puzzle = parse_puzzle(TEST_INPUT);
+        let matched = scanner_permutations(&puzzle[3])
+            .iter()
+            .find_map(|perm| overlap(&puzzle[1].points, perm));
+        let expected_delta = Point {
+            x: -20,
+            y: -1133,
+            z: -1061,
+        };
+        let delta_1 = Point {
+            x: 68,
+            y: -1246,
+            z: -43,
+        };
+        // scanner 1 matrix:
+        // [[-1, 0, 0], [0, 1, 0], [0, 0, -1]]
+
+        // scanner 4 matrix (relative to 1):
+        // [[0, 1, 0], [0, 0, -1], [-1, 0, 0]]
+        let (delta, perm, _) = matched.unwrap();
+        println!("delta: {}, perm: {:?}", delta, perm);
+        assert_eq!(expected_delta, delta - delta_1);
+    }
+
+    #[test]
+    fn test_delta_4() {
+        let puzzle = parse_puzzle(TEST_INPUT);
+        let matched = [0, 1, 2, 3].into_iter().find_map(|i| {
+            println!("matching 4 with {}", i);
+            scanner_permutations(&puzzle[4])
+                .iter()
+                // 1
+                .find_map(|perm| overlap(&puzzle[i].points, perm))
+        });
+        let expected_delta = Point {
+            x: -20,
+            y: -1133,
+            z: -1061,
+        };
+        let delta_1 = Point {
+            x: 68,
+            y: -1246,
+            z: -43,
+        };
+        // scanner 1 matrix:
+        // [[-1, 0, 0], [0, 1, 0], [0, 0, -1]]
+
+        // scanner 4 matrix (relative to 1):
+        // [[0, 1, 0], [0, 0, -1], [-1, 0, 0]]
+        let (delta, perm, _) = matched.unwrap();
+        println!("delta: {}, perm: {:?}", delta, perm);
+        assert_eq!(expected_delta, delta - delta_1);
     }
 
     // #[test]
