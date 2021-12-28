@@ -18,7 +18,7 @@ use aoc2021::day15;
 use aoc2021::day16;
 use aoc2021::day17;
 use aoc2021::day18;
-// use aoc2021::day19;
+use aoc2021::day19;
 use aoc2021::day20;
 use aoc2021::day21;
 use aoc2021::day22;
@@ -46,7 +46,7 @@ fn separate(c: &mut Criterion) {
     c.bench_function("day16", |b| b.iter(|| black_box(day16::solve())));
     c.bench_function("day17", |b| b.iter(|| black_box(day17::solve())));
     c.bench_function("day18", |b| b.iter(|| black_box(day18::solve())));
-    // c.bench_function("day19", |b| b.iter(|| black_box(day19::solve())));
+    c.bench_function("day19", |b| b.iter(|| black_box(day19::solve())));
     c.bench_function("day20", |b| b.iter(|| black_box(day20::solve())));
     c.bench_function("day21", |b| b.iter(|| black_box(day21::solve())));
     c.bench_function("day23", |b| b.iter(|| black_box(day23::solve())));
@@ -77,7 +77,7 @@ fn all_at_once(c: &mut Criterion) {
                 day16::solve();
                 day17::solve();
                 day18::solve();
-                // day19::solve();
+                day19::solve();
                 day20::solve();
                 day21::solve();
                 day22::solve();
