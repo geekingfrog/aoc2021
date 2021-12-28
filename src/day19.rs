@@ -5,7 +5,7 @@ use nom::combinator::{map, opt};
 use nom::multi::{count, separated_list1};
 use nom::sequence::{delimited, preceded, terminated, tuple};
 use nom::IResult;
-use std::collections::{BTreeSet, VecDeque};
+use std::collections::{BTreeSet, HashSet, VecDeque};
 use std::ops::Neg;
 
 pub fn solve() -> (usize, i32) {
@@ -165,10 +165,7 @@ fn scanner_permutations(scanner: &Scanner) -> [(M3, Vec<Point>); 24] {
         .cartesian_product(perms)
         .map(|(a, b)| {
             let m = m3_mul(a, b);
-            (
-                m,
-                scanner.points.clone().into_iter().map(|p| p * &m).collect(),
-            )
+            (m, scanner.points.iter().copied().map(|p| p * &m).collect())
         })
         .collect::<Vec<_>>()
         .try_into()
@@ -203,6 +200,17 @@ fn create_trans_table(scanners: &[Scanner]) -> Vec<(usize, Point, M3)> {
     let mut seen = vec![false; n];
     let mut to_check = VecDeque::from([0]);
 
+    let distances: Vec<HashSet<i32>> = scanners
+        .iter()
+        .map(|s| {
+            s.points
+                .iter()
+                .tuple_combinations()
+                .map(|(a, b)| dist(a, b))
+                .collect()
+        })
+        .collect_vec();
+
     while let Some(source) = to_check.pop_front() {
         if seen[source] {
             continue;
@@ -213,6 +221,12 @@ fn create_trans_table(scanners: &[Scanner]) -> Vec<(usize, Point, M3)> {
             if seen[i] {
                 continue;
             }
+
+            let has_overlap = distances[source].intersection(&distances[i]).count() >= 66; // 12 * 11 / 2
+            if !has_overlap {
+                continue;
+            }
+
             for perm in scanner_permutations(&scanners[source]) {
                 if let Some(delta) = overlap(&scanners[i].points, &perm.1) {
                     to_check.push_back(i);
