@@ -23,8 +23,8 @@ use aoc2021::day20;
 use aoc2021::day21;
 use aoc2021::day22;
 use aoc2021::day23;
-use aoc2021::day24;
-use aoc2021::day25;
+// use aoc2021::day24;
+// use aoc2021::day25;
 
 fn main() {
     let arg: Option<usize> = env::args()
@@ -55,38 +55,61 @@ fn main() {
         Some(21) => print_day("day21", day21::solve()),
         Some(22) => print_day("day22", day22::solve()),
         Some(23) => print_day("day23", day23::solve()),
-        Some(24) => print_day("day24", day24::solve()),
-        Some(25) => print_day("day25", day25::solve()),
+        // Some(24) => print_day("day24", day24::solve()),
+        // Some(25) => print_day("day25", day25::solve()),
         Some(x) => {
             eprintln!("Not solved yet for day {}", x);
             std::process::exit(1);
         },
         None => {
+            let start = std::time::Instant::now();
             print_day("day01", day01::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day02", day02::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day03", day03::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day04", day04::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day05", day05::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day06", day06::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day07", day07::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day08", day08::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day09", day09::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day10", day10::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day11", day11::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day12", day12::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day13", day13::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day14", day14::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day15", day15::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day16", day16::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day17", day17::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day18", day18::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day19", day19::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day20", day20::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day21", day21::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day22", day22::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day23", day23::solve());
-            print_day("day24", day24::solve());
-            print_day("day25", day25::solve());
+            // print_day("day24", day24::solve());
+            // print_day("day25", day25::solve());
         }
     }
 }
