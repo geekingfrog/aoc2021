@@ -1,6 +1,11 @@
-use std::ops::Neg;
+use std::{ops::Neg, str::FromStr};
 
-use nom::{IResult, combinator::{map, opt}, sequence::tuple, character::complete::digit1};
+use nom::{
+    character::complete::digit1,
+    combinator::{map, opt},
+    sequence::tuple,
+    IResult,
+};
 
 pub struct Grid<T> {
     pub points: Vec<T>,
@@ -59,10 +64,19 @@ where
 }
 
 pub fn parse_i32(raw: &str) -> IResult<&str, i32> {
+    parse_signed::<i32>(raw)
+}
+
+/// parse a signed digit
+pub fn parse_signed<F>(raw: &str) -> IResult<&str, F>
+where
+    F: FromStr + Neg<Output = F>,
+    <F as FromStr>::Err: std::fmt::Debug,
+{
     map(
         tuple((opt(nom::character::complete::char('-')), digit1)),
         |(sign, ds): (Option<char>, &str)| {
-            let x: i32 = ds.parse().unwrap();
+            let x: F = ds.parse().unwrap();
             match sign {
                 None => x,
                 Some(_) => x.neg(),
