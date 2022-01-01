@@ -1,3 +1,6 @@
+use std::collections::hash_map::Entry::{Occupied, Vacant};
+use std::collections::HashMap;
+
 use nom::character::complete as character;
 use nom::sequence::tuple;
 use nom::IResult;
@@ -52,11 +55,12 @@ fn solve2(puzzle: (usize, usize)) -> usize {
                 score: 0,
             },
         ],
-        occurrences: 1,
     };
 
     let mut states = vec![initial_state];
     let mut victories = vec![0; 2];
+
+    let mut states_count = HashMap::from([(initial_state, 1)]);
 
     while let Some(st) = states.pop() {
         let idx = match st.current {
@@ -64,12 +68,13 @@ fn solve2(puzzle: (usize, usize)) -> usize {
             Player::Two => 1,
         };
         let ps = &st.states[idx];
+        let occurrences = *states_count.get(&st).unwrap();
 
         if st.states[0].score >= 21 {
-            victories[0] += st.occurrences;
+            victories[0] += occurrences;
             continue;
         } else if st.states[1].score >= 21 {
-            victories[1] += st.occurrences;
+            victories[1] += occurrences;
             continue;
         }
 
@@ -79,18 +84,24 @@ fn solve2(puzzle: (usize, usize)) -> usize {
                 pos -= 10;
             };
             let score = ps.score + pos;
-            let new_state = PlayerState {
-                pos,
-                score,
-            };
+            let new_state = PlayerState { pos, score };
 
-            let mut new_st = GameState{
+            let mut new_st = GameState {
                 current: !st.current,
                 states: st.states,
-                occurrences: st.occurrences * count,
             };
             new_st.states[idx] = new_state;
-            states.push(new_st);
+            let entry = states_count.entry(new_st);
+            match entry {
+                Vacant(_) => {
+                    states_count.insert(new_st, occurrences * count);
+                    states.push(new_st);
+                }
+                Occupied(mut e) => {
+                    let e = e.get_mut();
+                    *e += occurrences * count;
+                }
+            }
         }
     }
 
@@ -101,20 +112,19 @@ fn solve2(puzzle: (usize, usize)) -> usize {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct GameState {
     current: Player,
     states: [PlayerState; 2],
-    occurrences: usize,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 struct PlayerState {
     pos: u8,
     score: u8,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 enum Player {
     One,
     Two,
@@ -165,7 +175,7 @@ Player 2 starting position: 8
     }
 
     #[test]
-    #[ignore]  // very slow in debug mode /o\
+    #[ignore] // very slow in debug mode /o\
     fn test_solve2() {
         assert_eq!(444356092776315, solve2(parse_puzzle(TEST_INPUT)));
     }
