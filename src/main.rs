@@ -24,7 +24,7 @@ use aoc2021::day21;
 use aoc2021::day22;
 use aoc2021::day23;
 use aoc2021::day24;
-// use aoc2021::day25;
+use aoc2021::day25;
 
 fn main() {
     let arg: Option<usize> = env::args()
@@ -56,7 +56,7 @@ fn main() {
         Some(22) => print_day("day22", day22::solve()),
         Some(23) => print_day("day23", day23::solve()),
         Some(24) => print_day("day24", day24::solve()),
-        // Some(25) => print_day("day25", day25::solve()),
+        Some(25) => print_day("day25", day25::solve()),
         Some(x) => {
             eprintln!("Not solved yet for day {}", x);
             std::process::exit(1);
@@ -108,8 +108,11 @@ fn main() {
             print_day("day22", day22::solve());
             println!("so far: {}", start.elapsed().as_millis());
             print_day("day23", day23::solve());
+            println!("so far: {}", start.elapsed().as_millis());
             print_day("day24", day24::solve());
-            // print_day("day25", day25::solve());
+            println!("so far: {}", start.elapsed().as_millis());
+            print_day("day25", day25::solve());
+            println!("total time: {}", start.elapsed().as_millis());
         }
     }
 }

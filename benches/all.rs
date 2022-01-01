@@ -89,7 +89,5 @@ fn all_at_once(c: &mut Criterion) {
     });
 }
 
-// criterion_group!(benches, separate);
-// criterion_group!(benches, all_at_once);
 criterion_group!(benches, separate, all_at_once);
 criterion_main!(benches);
