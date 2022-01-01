@@ -1,6 +1,10 @@
+use ahash::AHashMap;
+use fnv::FnvHashMap;
 use std::cmp::Ordering;
-use std::collections::{HashMap, BinaryHeap};
+use std::collections::{BinaryHeap, HashMap};
 use std::fmt::Display;
+
+type Map<K, V> = AHashMap<K, V>;
 
 pub fn solve() -> (usize, usize) {
     let grid = parse_input(include_str!("../resources/day23.txt"));
@@ -8,18 +12,19 @@ pub fn solve() -> (usize, usize) {
 }
 
 fn solve1(pods: &[[Pod; 4]; 2]) -> usize {
-    // return 0;
     use Pod::*;
     let raw = [pods[0], pods[1], [A, B, C, D], [A, B, C, D]];
     let grid = Grid::from_input(raw);
-    move_all_pods(grid)
+    // move_all_pods(grid)
+    move_all_pods_rec(grid, &mut Map::default(), 0, usize::MAX)
 }
 
 fn solve2(pods: &[[Pod; 4]; 2]) -> usize {
     use Pod::*;
     let raw = [pods[0], [D, C, B, A], [D, B, A, C], pods[1]];
     let grid = Grid::from_input(raw);
-    move_all_pods(grid)
+    // move_all_pods(grid)
+    move_all_pods_rec(grid, &mut Map::default(), 0, usize::MAX)
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord, Hash)]
@@ -193,15 +198,15 @@ impl Grid {
 
             let mut can_exit = true;
             let mut move_makes_sense = idx == room_start_idx + 3;
-            for i in room_start_idx..(room_start_idx+4) {
+            for i in room_start_idx..(room_start_idx + 4) {
                 match i.cmp(&idx) {
                     Ordering::Less => {
                         can_exit = can_exit && self.points[i].is_none();
-                    },
+                    }
                     Ordering::Equal => (),
                     Ordering::Greater => {
                         move_makes_sense = move_makes_sense || self.points[i] != Some(*pod);
-                    },
+                    }
                 }
             }
 
@@ -211,7 +216,7 @@ impl Grid {
             // );
 
             if can_exit && move_makes_sense {
-                let mut dests = vec![];
+                let mut dests = Vec::with_capacity(20);
                 let vdist = idx - room_start_idx + 1;
                 let left = [0, 1, 3, 5, 7, 9, 10]
                     .into_iter()
@@ -291,7 +296,7 @@ impl Display for Grid {
 #[derive(Eq, PartialEq)]
 struct Node<T>(T, Grid);
 
-impl<T:PartialOrd> PartialOrd for Node<T> {
+impl<T: PartialOrd> PartialOrd for Node<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.0.partial_cmp(&other.0)
     }
@@ -303,46 +308,88 @@ impl<T: Ord> Ord for Node<T> {
     }
 }
 
-fn move_all_pods(grid: Grid) -> usize {
-    let mut states = Vec::from([Node(0, grid)]);
-    let mut costs = HashMap::new();
-    let mut min_cost = usize::MAX;
+// fn move_all_pods(grid: Grid) -> usize {
+//     let mut states = Vec::from([Node(0, grid)]);
+//     let mut costs = Map::default();
+//     let mut min_cost = usize::MAX;
+//
+//     while let Some(Node(cost, grid)) = states.pop() {
+//         if let Some(c2) = costs.get(&grid) {
+//             if *c2 <= cost {
+//                 continue;
+//             }
+//         }
+//
+//         costs.insert(grid, cost);
+//         if grid.is_finished() {
+//             min_cost = min_cost.min(cost);
+//             continue;
+//         }
+//
+//         for (idx, p) in grid.points.iter().enumerate() {
+//             if p.is_none() {
+//                 continue;
+//             }
+//
+//             for (dest_idx, add_cost) in grid.dests(idx) {
+//                 let g = grid.move_pod(idx, dest_idx);
+//                 let c = cost + add_cost;
+//                 if c >= min_cost {
+//                     continue;
+//                 }
+//                 match costs.get(&g) {
+//                     Some(c2) if c2 > &c => {
+//                         states.push(Node(c, g));
+//                     }
+//                     None => states.push(Node(c, g)),
+//                     _ => (),
+//                 }
+//             }
+//         }
+//     }
+//     min_cost
+// }
 
-    while let Some(Node(cost, grid)) = states.pop() {
-        if let Some(c2) = costs.get(&grid) {
-            if *c2 <= cost {
-                continue;
-            }
+fn move_all_pods_rec(
+    grid: Grid,
+    mut cache: &mut Map<Grid, usize>,
+    cost: usize,
+    min_cost: usize,
+) -> usize {
+    if let Some(c2) = cache.get(&grid) {
+        if *c2 <= cost {
+            return min_cost;
         }
+    }
 
-        costs.insert(grid, cost);
-        if grid.is_finished() {
-            min_cost = min_cost.min(cost);
+    cache.insert(grid, cost);
+    if grid.is_finished() {
+        return min_cost.min(cost);
+    }
+
+    let mut min_costs = vec![];
+    for (idx, p) in grid.points.iter().enumerate() {
+        if p.is_none() {
             continue;
         }
 
-        for (idx, p) in grid.points.iter().enumerate() {
-            if p.is_none() {
+        for (dest_idx, add_cost) in grid.dests(idx) {
+            let g = grid.move_pod(idx, dest_idx);
+            let c = cost + add_cost;
+            if c >= min_cost {
                 continue;
             }
-
-            for (dest_idx, add_cost) in grid.dests(idx) {
-                let g = grid.move_pod(idx, dest_idx);
-                let c = cost + add_cost;
-                if c >= min_cost {
-                    continue;
+            match cache.get(&g) {
+                Some(c2) if c2 > &c => {
+                    min_costs.push(move_all_pods_rec(g, &mut cache, c, min_cost));
                 }
-                match costs.get(&g) {
-                    Some(c2) if c2 > &c => {
-                        states.push(Node(c,g));
-                    },
-                    None => states.push(Node(c, g)),
-                    _ => ()
-                }
+                None => min_costs.push(move_all_pods_rec(g, &mut cache, c, min_cost)),
+                _ => (),
             }
         }
     }
-    min_cost
+
+    min_costs.into_iter().min().unwrap_or(min_cost)
 }
 
 fn parse_input(raw: &str) -> [[Pod; 4]; 2] {
