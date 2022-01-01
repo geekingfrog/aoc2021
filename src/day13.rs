@@ -14,7 +14,6 @@ pub fn solve() -> (usize, String) {
 
 fn solve1(puzzle: &Puzzle) -> usize {
     let grid = GridMap::from_puzzle(puzzle);
-    // 1001 too high
     grid.fold(&puzzle.folds[0]).count_points()
 }
 
@@ -22,9 +21,7 @@ fn solve2(puzzle: &Puzzle) -> String {
     let final_grid = GridMap::from_puzzle(puzzle)
         .fold_all(&puzzle.folds);
     // the answer is "BCZRCEAB" but I can't be arsed to code an OCR
-    // so do something different to force evaluation so that rustc
-    // doesn't ellide the code entirerly
-    format!("{}", final_grid.count_points())
+    format!("\n{}", final_grid)
 }
 
 type Point = (u32, u32);
