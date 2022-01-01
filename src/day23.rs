@@ -289,31 +289,38 @@ impl Display for Grid {
 }
 
 #[derive(Eq, PartialEq)]
-struct Node(usize, Grid);
+struct Node<T>(T, Grid);
 
-impl std::cmp::PartialOrd for Node {
+impl<T:PartialOrd> PartialOrd for Node<T> {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
         self.0.partial_cmp(&other.0)
     }
 }
 
-impl std::cmp::Ord for Node {
+impl<T: Ord> Ord for Node<T> {
     fn cmp(&self, other: &Self) -> Ordering {
         self.0.cmp(&other.0)
     }
 }
 
 fn move_all_pods(grid: Grid) -> usize {
-    let mut states = BinaryHeap::from([Node(0, grid)]);
+    let mut states = Vec::from([Node(0, grid)]);
     let mut costs = HashMap::new();
     let mut min_cost = usize::MAX;
 
     while let Some(Node(cost, grid)) = states.pop() {
-        if grid.is_finished() {
-            min_cost = min_cost.min(cost);
+        if let Some(c2) = costs.get(&grid) {
+            if *c2 <= cost {
+                continue;
+            }
         }
 
         costs.insert(grid, cost);
+        if grid.is_finished() {
+            min_cost = min_cost.min(cost);
+            continue;
+        }
+
         for (idx, p) in grid.points.iter().enumerate() {
             if p.is_none() {
                 continue;
@@ -322,9 +329,11 @@ fn move_all_pods(grid: Grid) -> usize {
             for (dest_idx, add_cost) in grid.dests(idx) {
                 let g = grid.move_pod(idx, dest_idx);
                 let c = cost + add_cost;
+                if c >= min_cost {
+                    continue;
+                }
                 match costs.get(&g) {
                     Some(c2) if c2 > &c => {
-                        costs.insert(g, c);
                         states.push(Node(c,g));
                     },
                     None => states.push(Node(c, g)),
