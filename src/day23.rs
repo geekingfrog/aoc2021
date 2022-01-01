@@ -52,9 +52,21 @@ impl Display for Pod {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Default, Clone, Copy, Eq)]
 struct Grid {
     points: [Option<Pod>; 27],
+}
+
+impl PartialEq for Grid {
+    fn eq(&self, other: &Self) -> bool {
+        self.points == other.points
+    }
+}
+
+impl std::hash::Hash for Grid {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.to_usize().hash(state);
+    }
 }
 
 impl Grid {
@@ -97,6 +109,19 @@ impl Grid {
             && self.points[24] == Some(D)
             && self.points[25] == Some(D)
             && self.points[26] == Some(D)
+    }
+
+    fn to_usize(self) -> usize {
+        self.points.iter().fold(0, |acc, p| {
+            let x = match p {
+                Some(Pod::A) => 1,
+                Some(Pod::B) => 2,
+                Some(Pod::C) => 3,
+                Some(Pod::D) => 4,
+                None => 0,
+            };
+            acc * 5 + x
+        })
     }
 
     // possible destinations for the pod at index `idx`
