@@ -1,8 +1,6 @@
 use ahash::AHashMap;
-use fnv::FnvHashMap;
-use std::cmp::Ordering;
-use std::collections::{BinaryHeap, HashMap};
-use std::fmt::Display;
+use std::fmt::{Display, Formatter};
+use std::iter::Once;
 
 type Map<K, V> = AHashMap<K, V>;
 
@@ -12,19 +10,15 @@ pub fn solve() -> (usize, usize) {
 }
 
 fn solve1(pods: &[[Pod; 4]; 2]) -> usize {
-    use Pod::*;
-    let raw = [pods[0], pods[1], [A, B, C, D], [A, B, C, D]];
-    let grid = Grid::from_input(raw);
-    // move_all_pods(grid)
-    move_all_pods_rec(grid, &mut Map::default(), 0, usize::MAX)
+    let cavern = Cavern::from_input(pods);
+    move_all_pods_rec_cavern(cavern, &mut Map::default(), 0, usize::MAX)
 }
 
 fn solve2(pods: &[[Pod; 4]; 2]) -> usize {
     use Pod::*;
-    let raw = [pods[0], [D, C, B, A], [D, B, A, C], pods[1]];
-    let grid = Grid::from_input(raw);
-    // move_all_pods(grid)
-    move_all_pods_rec(grid, &mut Map::default(), 0, usize::MAX)
+    let pods = [pods[0], [D, C, B, A], [D, B, A, C], pods[1]];
+    let cavern = Cavern::from_input(&pods);
+    move_all_pods_rec_cavern(cavern, &mut Map::default(), 0, usize::MAX)
 }
 
 #[derive(Debug, PartialEq, Eq, Clone, Copy, PartialOrd, Ord, Hash)]
@@ -44,10 +38,31 @@ impl Pod {
             Pod::D => 1000,
         }
     }
+
+    fn room_idx(&self) -> usize {
+        match self {
+            Pod::A => 0,
+            Pod::B => 1,
+            Pod::C => 2,
+            Pod::D => 3,
+        }
+    }
+}
+
+impl std::convert::From<usize> for Pod {
+    fn from(n: usize) -> Self {
+        match n {
+            0 => Pod::A,
+            1 => Pod::B,
+            2 => Pod::C,
+            3 => Pod::D,
+            _ => unreachable!("invalid pod number {}", n),
+        }
+    }
 }
 
 impl Display for Pod {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Pod::A => f.write_str("A"),
             Pod::B => f.write_str("B"),
@@ -57,231 +72,242 @@ impl Display for Pod {
     }
 }
 
-#[derive(Debug, Default, Clone, Copy, Eq)]
-struct Grid {
-    points: [Option<Pod>; 27],
+
+
+#[derive(Debug, Clone, Copy)]
+enum Loc {
+    H(usize),
+    R { col: usize, row: usize },
 }
 
-impl PartialEq for Grid {
+#[derive(Clone, Copy, Eq)]
+struct Cavern<const N: usize> {
+    hallway: [Option<Pod>; 7],
+    rooms: [[Option<Pod>; N]; 4],
+}
+
+impl<const N: usize> PartialEq for Cavern<N> {
     fn eq(&self, other: &Self) -> bool {
-        self.points == other.points
+        self.hallway == other.hallway && self.rooms == other.rooms
     }
 }
 
-impl std::hash::Hash for Grid {
+impl<const N: usize> std::hash::Hash for Cavern<N> {
     fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
         self.to_usize().hash(state);
     }
 }
 
-impl Grid {
-    fn from_input(input: [[Pod; 4]; 4]) -> Self {
-        let mut points = [None; 27];
-        points[11] = Some(input[0][0]);
-        points[12] = Some(input[1][0]);
-        points[13] = Some(input[2][0]);
-        points[14] = Some(input[3][0]);
-        points[15] = Some(input[0][1]);
-        points[16] = Some(input[1][1]);
-        points[17] = Some(input[2][1]);
-        points[18] = Some(input[3][1]);
-        points[19] = Some(input[0][2]);
-        points[20] = Some(input[1][2]);
-        points[21] = Some(input[2][2]);
-        points[22] = Some(input[3][2]);
-        points[23] = Some(input[0][3]);
-        points[24] = Some(input[1][3]);
-        points[25] = Some(input[2][3]);
-        points[26] = Some(input[3][3]);
-        Self { points }
+impl<const N: usize> Cavern<N> {
+    // input given row-wise
+    fn from_input(input: &[[Pod; 4]; N]) -> Self {
+        let hallway = [None; 7];
+        let mut rooms = [[None; N]; 4];
+
+        for (row, r) in input.iter().enumerate() {
+            for (col, p) in r.iter().enumerate() {
+                rooms[col][row] = Some(*p);
+            }
+        }
+
+        Self { hallway, rooms }
+    }
+
+    fn to_usize(self) -> usize {
+        use Pod::*;
+        let rooms = self.rooms.iter().flat_map(|r| r.iter());
+        self.hallway.iter().chain(rooms).fold(0, |acc, p| {
+            acc * 5
+                + match p {
+                    Some(A) => 1,
+                    Some(B) => 2,
+                    Some(C) => 3,
+                    Some(D) => 4,
+                    None => 0,
+                }
+        })
+    }
+
+    fn get(&self, loc: Loc) -> Option<Pod> {
+        match loc {
+            Loc::H(i) => self.hallway[i],
+            Loc::R { col, row } => self.rooms[col][row],
+        }
+    }
+
+    fn set(&mut self, loc: Loc, p: Option<Pod>) {
+        match loc {
+            Loc::H(h) => self.hallway[h] = p,
+            Loc::R { col, row } => self.rooms[col][row] = p,
+        }
     }
 
     fn is_finished(&self) -> bool {
         use Pod::*;
-        self.points[11] == Some(A)
-            && self.points[12] == Some(A)
-            && self.points[13] == Some(A)
-            && self.points[14] == Some(A)
-            && self.points[15] == Some(B)
-            && self.points[16] == Some(B)
-            && self.points[17] == Some(B)
-            && self.points[18] == Some(B)
-            && self.points[19] == Some(C)
-            && self.points[20] == Some(C)
-            && self.points[21] == Some(C)
-            && self.points[22] == Some(C)
-            && self.points[23] == Some(D)
-            && self.points[24] == Some(D)
-            && self.points[25] == Some(D)
-            && self.points[26] == Some(D)
+        self.rooms[0].iter().all(|p| p == &Some(A))
+            && self.rooms[1].iter().all(|p| p == &Some(B))
+            && self.rooms[2].iter().all(|p| p == &Some(C))
+            && self.rooms[3].iter().all(|p| p == &Some(D))
     }
 
-    fn to_usize(self) -> usize {
-        self.points.iter().fold(0, |acc, p| {
-            let x = match p {
-                Some(Pod::A) => 1,
-                Some(Pod::B) => 2,
-                Some(Pod::C) => 3,
-                Some(Pod::D) => 4,
-                None => 0,
-            };
-            acc * 5 + x
-        })
+    fn pods(&self) -> impl Iterator<Item = (Loc, Pod)> + '_ {
+        let rooms = self.rooms.iter().enumerate().flat_map(|(col, rooms)| {
+            rooms
+                .iter()
+                .enumerate()
+                .filter_map(move |(row, r)| r.map(|r| (Loc::R { col, row }, r)))
+        });
+        self.hallway
+            .iter()
+            .enumerate()
+            .filter_map(|(h_idx, p)| p.map(|p| (Loc::H(h_idx), p)))
+            .chain(rooms)
     }
 
-    // possible destinations for the pod at index `idx`
-    fn dests(&self, idx: usize) -> Vec<(usize, usize)> {
-        let pod = match &self.points[idx] {
+    fn dests(&self, loc: Loc) -> PodStep {
+        let pod = match self.get(loc) {
             Some(p) => p,
-            None => return vec![],
+            None => return PodStep::Empty,
         };
+        match loc {
+            // in hallway, may move to final room only (terms & conditions apply)
+            Loc::H(h_idx) => self.move_to_room(pod, h_idx),
 
-        let (dest_room_idx, dest_room_exit) = match pod {
-            Pod::A => (11, 2),
-            Pod::B => (15, 4),
-            Pod::C => (19, 6),
-            Pod::D => (23, 8),
-        };
-
-        if idx < 11 {
-            // in hallway, must move to final room
-            let path_blocked = (idx.min(dest_room_exit)..=idx.max(dest_room_exit))
-                .into_iter()
-                .any(|i| i != idx && self.points[i].is_some());
-            // println!(
-            //     "path blocked from {} to {}: {}",
-            //     idx, dest_room_exit, path_blocked
-            // );
-            if path_blocked {
-                return vec![];
-            }
-
-            // further restrict to only move there if all pods
-            // already there won't move
-            let move_makes_sense =
-                (dest_room_idx..(dest_room_idx + 4)).all(|i| match self.points[i] {
-                    Some(p) => &p == pod,
-                    None => true,
-                });
-
-            if !move_makes_sense {
-                return vec![];
-            }
-
-            let pos = (dest_room_idx..(dest_room_idx + 4))
-                .into_iter()
-                .rev()
-                .find(|i| self.points[*i].is_none());
-            match pos {
-                Some(pos) => {
-                    let hdist = idx.max(dest_room_exit) - idx.min(dest_room_exit);
-                    // println!("hdist: {}", hdist);
-                    let vdist = pos - dest_room_idx + 1;
-                    // println!("pos: {} - vdist: {}", pos, vdist);
-                    let cost = (hdist + vdist) * pod.energy();
-                    vec![(pos, cost)]
-                }
-                None => vec![],
-            }
-        } else {
-            // in a room, move to the hallway
-            // moving to a room can be done in another step
-
-            let room_idx = (idx - 11) / 4;
-            let room_exit_idx = room_idx * 2 + 2;
-            let room_start_idx = room_idx * 4 + 11;
-
-            // println!(
-            //     "from idx {}, room exit is at {} and room starts at {}",
-            //     idx, room_exit_idx, room_start_idx
-            // );
-
-            let mut can_exit = true;
-            let mut move_makes_sense = idx == room_start_idx + 3;
-            for i in room_start_idx..(room_start_idx + 4) {
-                match i.cmp(&idx) {
-                    Ordering::Less => {
-                        can_exit = can_exit && self.points[i].is_none();
-                    }
-                    Ordering::Equal => (),
-                    Ordering::Greater => {
-                        move_makes_sense = move_makes_sense || self.points[i] != Some(*pod);
-                    }
-                }
-            }
-
-            // println!(
-            //     "idx {}({}) can exit? {} and makes sense? {}",
-            //     idx, pod, can_exit, move_makes_sense
-            // );
-
-            if can_exit && move_makes_sense {
-                let mut dests = Vec::with_capacity(20);
-                let vdist = idx - room_start_idx + 1;
-                let left = [0, 1, 3, 5, 7, 9, 10]
-                    .into_iter()
-                    .rev()
-                    .skip_while(|i| *i > room_exit_idx)
-                    .take_while(|i| self.points[*i].is_none())
-                    .map(|i| {
-                        let hdist = room_exit_idx - i;
-                        (i, (hdist + vdist) * pod.energy())
-                    });
-                dests.extend(left);
-
-                // println!("dest after left {:?}", dests);
-
-                let right = [0, 1, 3, 5, 7, 9, 10]
-                    .into_iter()
-                    .skip_while(|i| *i < room_exit_idx)
-                    .take_while(|i| self.points[*i].is_none())
-                    .map(|i| {
-                        let hdist = i - room_exit_idx;
-                        (i, (hdist + vdist) * pod.energy())
-                    });
-
-                dests.extend(right);
-                // println!("dest after right: {:?}", dests);
-
-                dests
-            } else {
-                vec![]
+            // in a room, may move to hallway under some circumstances
+            Loc::R { col, row } => {
+                self.move_to_hallway(pod, col, row)
             }
         }
     }
 
-    fn move_pod(mut self, from: usize, to: usize) -> Self {
-        let p = self.points[from].expect("non empty space");
-        self.points[from] = None;
-        self.points[to] = Some(p);
+    fn move_to_room(&self, pod: Pod, h_idx: usize) -> PodStep {
+        // check all pods in the target room are the right ones
+        // can only move there if none of them will have to
+        // move later on
+        let ri = pod.room_idx();
+        let should_move = self.rooms[ri]
+            .iter()
+            .all(|room_pod| room_pod.map(|p2| p2 == pod).unwrap_or(true));
+        let can_move = (h_idx.min(ri + 2)..(h_idx.max(ri + 2)))
+            .all(|h2| h2 == h_idx || self.hallway[h2].is_none());
+
+        if should_move && can_move {
+            let target_idx = self.rooms[ri]
+                .iter()
+                .enumerate()
+                .rev()
+                .find(|(_, p)| p.is_none())
+                .map(|x| x.0);
+            match target_idx {
+                Some(i) => {
+                    let loc = Loc::R { col: ri, row: i };
+                    let dist = hdist(ri, h_idx) + i + 1;
+                    PodStep::ToRoom(std::iter::once((loc, dist * pod.energy())))
+                }
+                None => PodStep::Empty,
+            }
+        } else {
+            PodStep::Empty
+        }
+    }
+
+    fn move_to_hallway(&self, pod: Pod, col: usize, row: usize) -> PodStep {
+        let ri = pod.room_idx();
+
+        let should_move = col != ri
+            || self.rooms[col][(row + 1)..N].iter().any(|p2| match p2 {
+                Some(p2) => p2.room_idx() != col,
+                None => true,
+            });
+        let can_move = (0..row).is_empty() || self.rooms[col][0..row].iter().all(|x| x.is_none());
+
+        if should_move && can_move {
+            let left = (0..(col + 2))
+                .rev()
+                .take_while(|h_idx| self.hallway[*h_idx].is_none())
+                .map(|h_idx| {
+                    let dist = row + 1 + hdist(col, h_idx);
+                    (Loc::H(h_idx), dist * pod.energy())
+                })
+                .collect();
+
+            let right = ((col + 2)..self.hallway.len())
+                .take_while(|h_idx| self.hallway[*h_idx].is_none())
+                .map(|h_idx| {
+                    let dist = row + 1 + hdist(col, h_idx);
+                    (Loc::H(h_idx), dist * pod.energy())
+                })
+                .collect();
+
+            PodStep::ToHallway {
+                left,
+                li: Some(0),
+                right,
+                ri: None,
+            }
+        } else {
+            PodStep::Empty
+        }
+    }
+
+    fn move_pod(mut self, from: Loc, to: Loc) -> Self {
+        let p = self.get(from);
+        self.set(from, None);
+        self.set(to, p);
         self
     }
 }
 
-impl Display for Grid {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("#############\n")?;
-        f.write_str("#")?;
-        for i in 0..11 {
-            match self.points[i] {
+// assuming the pod is in the hallway, in front of a room
+// what's the distance until index h_idx in the hallway?
+fn hdist(ri: usize, h_idx: usize) -> usize {
+    let d = if h_idx == 0 || h_idx == 6 { 1 } else { 0 };
+
+    let base = if h_idx <= ri + 1 {
+        ri + 1 - h_idx
+    } else {
+        h_idx - (ri + 2)
+    };
+    base * 2 + 1 - d
+}
+
+impl<const N: usize> Display for Cavern<N> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        fn fmt_pod(f: &mut Formatter<'_>, p: Option<Pod>) -> std::fmt::Result {
+            match p {
                 Some(p) => write!(f, "{}", p)?,
                 None => write!(f, ".")?,
             }
+            Ok(())
         }
+
+        f.write_str("#############\n")?;
+        f.write_str("#")?;
+        fmt_pod(f, self.hallway[0])?;
+        fmt_pod(f, self.hallway[1])?;
+        f.write_str(".")?;
+        fmt_pod(f, self.hallway[2])?;
+        f.write_str(".")?;
+        fmt_pod(f, self.hallway[3])?;
+        f.write_str(".")?;
+        fmt_pod(f, self.hallway[4])?;
+        f.write_str(".")?;
+        fmt_pod(f, self.hallway[5])?;
+        fmt_pod(f, self.hallway[6])?;
         f.write_str("#\n")?;
-        for i in 0..4 {
+
+        for i in 0..N {
             if i == 0 {
                 f.write_str("###")?;
             } else {
                 f.write_str("  #")?;
             }
-            for j in 0..4 {
-                match self.points[11 + j * 4 + i] {
-                    Some(p) => write!(f, "{}", p)?,
-                    None => write!(f, ".")?,
-                };
+
+            for r in 0..4 {
+                fmt_pod(f, self.rooms[r][i])?;
                 f.write_str("#")?;
             }
+
             if i == 0 {
                 f.write_str("##\n")?;
             } else {
@@ -293,103 +319,93 @@ impl Display for Grid {
     }
 }
 
-#[derive(Eq, PartialEq)]
-struct Node<T>(T, Grid);
+#[derive(Clone)]
+enum PodStep {
+    Empty,
+    ToRoom(Once<(Loc, usize)>),
+    ToHallway {
+        left: Vec<(Loc, usize)>,
+        li: Option<usize>,
+        right: Vec<(Loc, usize)>,
+        ri: Option<usize>,
+    },
+}
 
-impl<T: PartialOrd> PartialOrd for Node<T> {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        self.0.partial_cmp(&other.0)
+impl Iterator for PodStep {
+    /// destination_index, energy spent
+    type Item = (Loc, usize);
+
+    fn next(&mut self) -> Option<Self::Item> {
+        match self {
+            PodStep::Empty => None,
+            PodStep::ToRoom(x) => x.next(),
+            PodStep::ToHallway {
+                left,
+                right,
+                li,
+                ri,
+            } => {
+                match li {
+                    Some(i) if *i < left.len() => {
+                        let r = left[*i];
+                        *i += 1;
+                        return Some(r);
+                    }
+                    Some(_) => {
+                        *li = None;
+                        *ri = Some(0);
+                    }
+                    _ => (),
+                };
+                match ri {
+                    Some(i) if *i < right.len() => {
+                        let r = right[*i];
+                        *i += 1;
+                        Some(r)
+                    }
+                    _ => None,
+                }
+            }
+        }
     }
 }
 
-impl<T: Ord> Ord for Node<T> {
-    fn cmp(&self, other: &Self) -> Ordering {
-        self.0.cmp(&other.0)
-    }
-}
-
-// fn move_all_pods(grid: Grid) -> usize {
-//     let mut states = Vec::from([Node(0, grid)]);
-//     let mut costs = Map::default();
-//     let mut min_cost = usize::MAX;
-//
-//     while let Some(Node(cost, grid)) = states.pop() {
-//         if let Some(c2) = costs.get(&grid) {
-//             if *c2 <= cost {
-//                 continue;
-//             }
-//         }
-//
-//         costs.insert(grid, cost);
-//         if grid.is_finished() {
-//             min_cost = min_cost.min(cost);
-//             continue;
-//         }
-//
-//         for (idx, p) in grid.points.iter().enumerate() {
-//             if p.is_none() {
-//                 continue;
-//             }
-//
-//             for (dest_idx, add_cost) in grid.dests(idx) {
-//                 let g = grid.move_pod(idx, dest_idx);
-//                 let c = cost + add_cost;
-//                 if c >= min_cost {
-//                     continue;
-//                 }
-//                 match costs.get(&g) {
-//                     Some(c2) if c2 > &c => {
-//                         states.push(Node(c, g));
-//                     }
-//                     None => states.push(Node(c, g)),
-//                     _ => (),
-//                 }
-//             }
-//         }
-//     }
-//     min_cost
-// }
-
-fn move_all_pods_rec(
-    grid: Grid,
-    mut cache: &mut Map<Grid, usize>,
+fn move_all_pods_rec_cavern<const N: usize>(
+    cavern: Cavern<N>,
+    mut cache: &mut Map<Cavern<N>, usize>,
     cost: usize,
     min_cost: usize,
 ) -> usize {
-    if let Some(c2) = cache.get(&grid) {
+    if let Some(c2) = cache.get(&cavern) {
         if *c2 <= cost {
             return min_cost;
         }
     }
 
-    cache.insert(grid, cost);
-    if grid.is_finished() {
+    cache.insert(cavern, cost);
+    if cavern.is_finished() {
         return min_cost.min(cost);
     }
 
-    let mut min_costs = vec![];
-    for (idx, p) in grid.points.iter().enumerate() {
-        if p.is_none() {
-            continue;
-        }
-
-        for (dest_idx, add_cost) in grid.dests(idx) {
-            let g = grid.move_pod(idx, dest_idx);
+    let mut min_cost = min_cost;
+    for (loc, _p) in cavern.pods() {
+        for (dest_idx, add_cost) in cavern.dests(loc) {
+            let g = cavern.move_pod(loc, dest_idx);
             let c = cost + add_cost;
             if c >= min_cost {
                 continue;
             }
             match cache.get(&g) {
                 Some(c2) if c2 > &c => {
-                    min_costs.push(move_all_pods_rec(g, &mut cache, c, min_cost));
+                    min_cost = min_cost.min(move_all_pods_rec_cavern(g, &mut cache, c, min_cost));
                 }
-                None => min_costs.push(move_all_pods_rec(g, &mut cache, c, min_cost)),
+                None => min_cost = min_cost.min(move_all_pods_rec_cavern(g, &mut cache, c, min_cost)),
                 _ => (),
             }
         }
     }
 
-    min_costs.into_iter().min().unwrap_or(min_cost)
+    min_cost
 }
 
 fn parse_input(raw: &str) -> [[Pod; 4]; 2] {
@@ -417,8 +433,6 @@ fn parse_input(raw: &str) -> [[Pod; 4]; 2] {
 
 #[cfg(test)]
 mod test {
-    use std::collections::HashSet;
-
     use super::*;
 
     const TEST_INPUT: &str = "#############
@@ -428,107 +442,47 @@ mod test {
   #########
 ";
 
+    fn prn_cds<const N: usize>(c: &Cavern<N>, l: Loc) {
+        let p = c.get(l).unwrap();
+        let ds = c.dests(l).collect::<Vec<_>>();
+        println!("{} - {:?}", p, ds);
+    }
+
     // #[test]
-    // fn test_stuff() {
-    //     use Pod::*;
-    //     let parsed = parse_input(TEST_INPUT);
-    //     let raw = [parsed[0], parsed[1], [A, B, C, D], [A, B, C, D]];
-    //     let grid = Grid::from_input(raw);
-    //     println!("{}", grid);
+    // #[ignore]
+    // fn test_cavern() {
+    //     let cavern = Cavern::from_input(&parse_input(TEST_INPUT));
+    //     println!("{}", cavern);
     //
-    //     let (d, grid) = grid.move_pod(15, 1);
-    //     println!("{}", grid);
-    //     assert_eq!(400, d);
-    //     println!("{} - {:?}", grid.points[19].unwrap(), grid.destinations(19));
-    //     assert!(grid.destinations(19).contains(&15));
-    //
-    //     let (d, grid) = grid.move_pod(19, 9);
-    //     println!("{}", grid);
-    //     assert_eq!(d, 40);
-    //     println!("{} - {:?}", grid.points[11].unwrap(), grid.destinations(11));
-    //     println!("{} - {:?}", grid.points[16].unwrap(), grid.destinations(16));
-    //     println!("{} - {:?}", grid.points[1].unwrap(), grid.destinations(1));
-    //
-    //     let (d, grid) = grid.move_pod(23, 19); // illegal move but :shrug:
-    //     println!("{}", grid);
-    //     assert_eq!(d, 4000);
-    //
-    //     //
-    //     // assert_eq!(vec![3, 5, 15], grid.destinations(11));
-    //     // assert_eq!(vec![3, 5], grid.destinations(16));
+    //     prn_cds(&cavern, Loc::R { col: 1, row: 0 });
+    //     let cavern = cavern.move_pod(Loc::R { col: 1, row: 0 }, Loc::H(3));
+    //     println!("{}", cavern);
     //
     //     assert!(false);
     // }
 
-    // #[test]
-    // fn test_stuff() {
-    //     use Pod::*;
-    //     let parsed = parse_input(TEST_INPUT);
-    //     let raw = [parsed[0], parsed[1], [A, B, C, D], [A, B, C, D]];
-    //     let grid = Grid::from_input(raw);
-    //     println!("{}", grid);
-    //
-    //     println!("{} - {:?}", grid.points[11].unwrap(), grid.dests(11));
-    //     let grid = grid.move_pod(11, 1);
-    //     let grid = grid.move_pod(12, 10);
-    //     let grid = grid.move_pod(15, 9);
-    //     println!("{}", grid);
-    //     println!("{}-{} - {:?}", 13, grid.points[13].unwrap(), grid.dests(13));
-    //     println!("{}-{} - {:?}", 1, grid.points[1].unwrap(), grid.dests(1));
-    //     println!("{}-{} - {:?}", 10, grid.points[10].unwrap(), grid.dests(10));
-    //
-    //     let grid = grid.move_pod(1, 15);
-    //     println!("{}", grid);
-    //     prn_ds(&grid, 15);
-    //
-    //     assert!(false);
-    // }
-
-    fn prn_ds(grid: &Grid, idx: usize) {
-        println!(
-            "{}-{} - {:?}",
-            idx,
-            grid.points[idx].unwrap(),
-            grid.dests(idx)
-        );
-    }
-
     #[test]
-    fn test_dests_to_room() {
-        let mut grid = Grid::default();
-        grid.points[3] = Some(Pod::A);
-        println!("{}", grid);
-        prn_ds(&grid, 3);
-        assert_eq!(vec![(14, 5)], grid.dests(3));
-    }
-
-    #[test]
-    fn test_dests_to_hall() {
-        let mut grid = Grid::default();
-        grid.points[18] = Some(Pod::A);
-        println!("{}", grid);
-        prn_ds(&grid, 18);
-        let ds: HashSet<_> = grid.dests(18).into_iter().map(|x| x.0).collect();
-        assert_eq!(HashSet::from([0, 1, 3, 5, 7, 9, 10]), ds);
-    }
-
-    #[test]
-    fn test_dests_hall_2() {
+    fn test_finished_cavern() {
         use Pod::*;
-        let mut grid = Grid::default();
-        grid.points[9] = Some(C);
-        grid.points[10] = Some(A);
-        grid.points[13] = Some(A);
-        grid.points[14] = Some(B);
-        grid.points[15] = Some(B);
-        grid.points[16] = Some(D);
-        grid.points[17] = Some(B);
-        grid.points[18] = Some(B);
+        let c = Cavern::from_input(&[[A, B, C, D], [A, B, C, D]]);
+        println!("{}", c);
+        assert!(c.is_finished());
+    }
 
-        println!("{}", grid);
-        prn_ds(&grid, 15);
-        let ds: HashSet<_> = grid.dests(15).into_iter().map(|x| x.0).collect();
-        assert_eq!(HashSet::from([0, 1, 3, 5, 7]), ds);
+    #[test]
+    #[ignore]
+    fn test_stuff() {
+        use Loc::*;
+        let parsed = parse_input(TEST_INPUT);
+        let cavern = Cavern::from_input(&parsed);
+        println!("{}", cavern);
+
+        let cavern = cavern.move_pod(R { col: 2, row: 0 }, H(0));
+        println!("{}", cavern);
+        prn_cds(&cavern, H(0));
+        prn_cds(&cavern, R { col: 1, row: 0 });
+
+        assert!(false);
     }
 
     #[test]
