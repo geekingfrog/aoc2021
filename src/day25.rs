@@ -1,35 +1,36 @@
 use std::fmt::Display;
 
-pub fn solve() -> (usize, usize) {
+pub fn solve() -> (usize, &'static str) {
     let grid = Grid::from_str(include_str!("../resources/day25.txt"));
-    (solve1(grid), solve2())
+    (solve1(grid), "star!")
 }
 
-fn solve1(mut grid: Grid) -> usize {
+fn solve1(grid: Grid) -> usize {
     let mut has_moved = true;
     let mut n = 0;
+    let mut grid = grid;
+    let mut next_grid = grid.clone();
+
     while has_moved {
         n += 1;
         has_moved = false;
+
         for dir in [Dir::East, Dir::South] {
             let idx_to_move = (0..grid.points.len())
                 .into_iter()
-                .filter_map(|i| grid.can_move(i, dir))
-                .collect::<Vec<_>>();
-            if !idx_to_move.is_empty() {
-                has_moved = true
-            };
+                .filter_map(|i| grid.can_move(i, dir));
+
             for (i, j) in idx_to_move {
-                grid.points[j] = grid.points[i];
-                grid.points[i] = None;
+                has_moved = true;
+                next_grid.points[j] = grid.points[i];
+                next_grid.points[i] = None;
             }
+
+            grid = next_grid;
+            next_grid = grid.clone();
         }
     }
     n
-}
-
-fn solve2() -> usize {
-    0
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -164,10 +165,5 @@ v.v..>>v.v
     fn test_solve1() {
         let grid = Grid::from_str(TEST_INPUT);
         assert_eq!(58, solve1(grid));
-    }
-
-    #[test]
-    fn test_solve2() {
-        todo!()
     }
 }
