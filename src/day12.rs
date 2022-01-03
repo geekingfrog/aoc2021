@@ -97,52 +97,93 @@ impl Graph {
     fn count_path_to_end(&self, can_return: bool) -> usize {
         let mut seen = vec![false; self.n];
         seen[0] = true;
-        let mut results = vec![];
-        self.dfs(0, seen, can_return, vec![], &mut results);
-        results.into_iter().collect::<BTreeSet<_>>().len()
+        let mut paths = RoseTree::new(0);
+        self.dfs(0, &mut seen, can_return, &mut paths);
+        paths.count_paths(&(self.n - 1))
     }
 
     fn dfs(
         &self,
         from: usize,
-        seen: Vec<bool>,
+        seen: &mut [bool],
         can_return: bool,
-        mut path: Vec<usize>,
-        // using a BTreeSet there is actually slower than carrying a vec
-        // and removing the duplicates at the very end
-        results: &mut Vec<Vec<usize>>,
+        paths: &mut RoseTree<usize>,
     ) {
-        path.push(from);
         for i in self.connections[(self.n * from)..(self.n * (from + 1))]
             .iter()
             .enumerate()
             .filter_map(|(i, &has_edge)| if has_edge { Some(i) } else { None })
         {
-            if *seen.get(i).unwrap() {
+            if seen[i] {
                 continue;
             }
+
             if i == self.n - 1 {
-                let mut p = path.clone();
-                p.push(i);
-                results.push(p);
+                paths.push(i);
                 continue;
             }
+
+            let n = paths.push(i);
+            let mut paths = &mut paths.1[n];
             match self.caves[i] {
                 Cave::Small => {
                     if can_return {
                         // don't mark node as seen, and flip the switch
-                        self.dfs(i, seen.clone(), false, path.clone(), results);
+                        self.dfs(i, seen, false, &mut paths);
                     }
-                    let mut s = seen.clone();
-                    s[i] = true;
-                    self.dfs(i, s, can_return, path.clone(), results);
+                    seen[i] = true;
+                    self.dfs(i, seen, can_return, &mut paths);
+                    seen[i] = false;
                 }
-                Cave::Big => {
-                    self.dfs(i, seen.clone(), can_return, path.clone(), results)
-                }
+                Cave::Big => self.dfs(i, seen, can_return, &mut paths),
             }
         }
     }
+}
+
+#[derive(Debug)]
+struct RoseTree<T>(T, Vec<RoseTree<T>>);
+
+impl<T> RoseTree<T> {
+    fn new(root: T) -> Self {
+        RoseTree(root, vec![])
+    }
+
+    fn push(&mut self, node: T) -> usize
+    where
+        T: PartialEq,
+    {
+        match self.1.iter().enumerate().find(|(_idx, t)| t.0 == node) {
+            Some((i, _)) => i,
+            None => {
+                self.1.push(Self::new(node));
+                self.1.len() - 1
+            }
+        }
+    }
+
+    fn count_paths(&self, target: &T) -> usize
+    where
+        T: Eq,
+    {
+        if &self.0 == target {
+            1
+        } else {
+            self.1.iter().map(|n| n.count_paths(target)).sum()
+        }
+    }
+
+    // fn dedup(&mut self)
+    //     where T: Eq + std::hash::Hash + Copy
+    // {
+    //     let mut seen = HashMap::new();
+    //     for c in &self.1 {
+    //         let e = seen.entry(&c.0).or_insert_with(Vec::new);
+    //         e.extend(&c.1);
+    //     }
+    //     let children = seen.into_iter().map(|x| x.1).collect();
+    //     *self = RoseTree(self.0, children);
+    // }
 }
 
 #[cfg(test)]
