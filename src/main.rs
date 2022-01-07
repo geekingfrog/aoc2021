@@ -44,6 +44,12 @@ fn main() {
                 run_day(i).unwrap();
                 let elapsed = start.elapsed();
                 total += elapsed;
+                // println!(
+                //     r#"{{"day": {}, "total_ms": {}, "delta_ms": {}}},"#,
+                //     i,
+                //     total.as_millis(),
+                //     elapsed.as_millis(),
+                // );
                 println!(
                     "total so far: {}ms (+{}ms)",
                     total.as_millis(),

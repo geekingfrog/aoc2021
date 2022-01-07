@@ -1,9 +1,8 @@
-use itertools::Itertools;
 use std::fmt::Display;
 
 pub fn solve() -> (usize, usize) {
     let trees = parse_input(include_str!("../resources/day18.txt"));
-    (solve1(&trees), solve2(&trees))
+    (solve1(&trees), solve2(trees))
 }
 
 fn parse_input(raw: &str) -> Vec<Tree> {
@@ -14,14 +13,24 @@ fn solve1(trees: &[Tree]) -> usize {
     sum_trees(trees).magnitude(0)
 }
 
-fn solve2(trees: &[Tree]) -> usize {
+fn solve2(mut trees: Vec<Tree>) -> usize {
     let n = trees.len();
-    (0..n)
-        .cartesian_product(0..n)
-        .filter(|(x, y)| x != y)
-        .map(|(x, y)| (trees[x].clone() + &trees[y]).reduce().magnitude(0))
-        .max()
-        .unwrap()
+    let mut max_so_far = 0;
+    trees.sort_unstable_by(|a, b| {
+        use std::cmp::Reverse;
+        Reverse(a.magnitude(0)).cmp(&Reverse(b.magnitude(0)))
+    });
+    for x in 0..n {
+        for y in x + 1..n {
+            let m = trees[x].magnitude(0) * 3 + 2 * trees[y].magnitude(0);
+            // reducing a tree always lower its magnitude
+            if m > max_so_far {
+                let t = trees[x].clone() + &trees[y];
+                max_so_far = max_so_far.max(t.reduce().magnitude(0))
+            }
+        }
+    }
+    max_so_far
 }
 
 fn sum_trees(trees: &[Tree]) -> Tree {
@@ -112,17 +121,12 @@ impl Tree {
     }
 
     fn explode_pair(&mut self) -> bool {
-        let p = self
-            .nodes
-            .iter()
-            .enumerate()
-            .find(|(idx, n)| n.is_some() && self.depth(*idx) > 4);
+        let p = self.nodes.iter().enumerate().find_map(|(idx, n)| match n {
+            Some(Node::Num(node)) if self.depth(idx) > 4 => Some((idx, node)),
+            _ => None,
+        });
         match p {
-            Some((idx, node)) => {
-                let node_val = match node {
-                    Some(Node::Num(n)) => n,
-                    _ => unreachable!(),
-                };
+            Some((idx, node_val)) => {
                 if let Some((left_idx, x)) = self.left_num(idx) {
                     self.nodes[left_idx] = Some(Node::Num(x + node_val));
                 }
@@ -266,10 +270,7 @@ mod test {
             self.nodes
                 .iter()
                 .enumerate()
-                .find(|(_, n)| match n {
-                    Some(Node::Num(k)) if *k == target => true,
-                    _ => false,
-                })
+                .find(|(_, n)| matches!(n, Some(Node::Num(k)) if *k == target))
                 .map(|(idx, _)| idx)
         }
     }
@@ -414,6 +415,6 @@ mod test {
 
     #[test]
     fn test_solve2() {
-        assert_eq!(3993, solve2(&parse_input(TEST_INPUT)));
+        assert_eq!(3993, solve2(parse_input(TEST_INPUT)));
     }
 }
